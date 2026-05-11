@@ -1,6 +1,6 @@
 // src/stores/finance.ts
 import { defineStore } from 'pinia'
-import api from '../plugins/api'
+import api, { type ApiError } from '../plugins/api'
 
 export interface MonthlyExpense {
   MONTH: string
@@ -64,9 +64,12 @@ export const useFinanceStore = defineStore('finance', {
           this.monthlyExpenses = response.data.data
         }
       } catch (err) {
-        const e = err as Error
+        const e = err as ApiError
         this.errorExpenses = e.message || 'Failed to fetch expenses'
-        console.error(err)
+        // Only log unexpected server errors — 4xx are handled silently in the UI
+        if (!e.isClientError && !e.isNetworkError) {
+          console.warn('[Finance] Unexpected error fetching expenses:', e.message)
+        }
       } finally {
         this.loadingExpenses = false
       }
@@ -81,9 +84,12 @@ export const useFinanceStore = defineStore('finance', {
           this.summary = response.data.data
         }
       } catch (err) {
-        const e = err as Error
+        const e = err as ApiError
         this.errorSummary = e.message || 'Failed to fetch dashboard summary'
-        console.error(err)
+        // Only log unexpected server errors — 4xx are handled silently in the UI
+        if (!e.isClientError && !e.isNetworkError) {
+          console.warn('[Finance] Unexpected error fetching summary:', e.message)
+        }
       } finally {
         this.loadingSummary = false
       }

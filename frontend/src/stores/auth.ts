@@ -1,6 +1,6 @@
 // src/stores/auth.ts
 import { defineStore } from 'pinia'
-import api from '../plugins/api'
+import api, { type ApiError } from '../plugins/api'
 
 interface User {
   id: number
@@ -61,10 +61,11 @@ export const useAuthStore = defineStore('auth', {
         }
         return false
       } catch (err) {
-        const apiErr = err as { response?: { data?: { message?: string } }; isNetworkError?: boolean }
+        const apiErr = err as ApiError
         if (apiErr.isNetworkError) {
           this.error = 'Cannot reach the server. Is the backend running?'
         } else {
+          // 4xx (wrong password, account not found) — message from server
           this.error = apiErr.response?.data?.message || 'Login failed'
         }
         return false
@@ -80,10 +81,11 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.post<RegisterResponse>('/auth/register', { name, email, password })
         return response.data.success
       } catch (err) {
-        const apiErr = err as { response?: { data?: { message?: string } }; isNetworkError?: boolean }
+        const apiErr = err as ApiError
         if (apiErr.isNetworkError) {
           this.error = 'Cannot reach the server. Is the backend running?'
         } else {
+          // 4xx (email taken, validation error) — message from server
           this.error = apiErr.response?.data?.message || 'Registration failed'
         }
         return false

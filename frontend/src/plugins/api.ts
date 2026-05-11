@@ -3,6 +3,8 @@
 export interface ApiError extends Error {
   response?: { data: { message?: string; success?: boolean }; status: number }
   isNetworkError?: boolean
+  /** True for 4xx errors — expected application-level rejections, not bugs */
+  isClientError?: boolean
 }
 
 interface RequestOptions extends RequestInit {
@@ -51,10 +53,21 @@ const api = {
     const data = await response.json().catch(() => ({}) as T) as T
 
     if (!response.ok) {
-      const err = new Error(
-        (data as { message?: string })?.message || `Request failed with status ${response.status}`
-      ) as ApiError
+      const message = (data as { message?: string })?.message || `Request failed with status ${response.status}`
+      const err = new Error(message) as ApiError
       err.response = { data: data as { message?: string }, status: response.status }
+
+      if (response.status >= 400 && response.status < 500) {
+        // 4xx = client error (wrong password, not found, forbidden, etc.)
+        // These are expected application flow — NOT bugs.
+        // Callers handle the message via err.response and show it in the UI.
+        // Never log these to the console.
+        err.isClientError = true
+      } else {
+        // 5xx = unexpected server error — worth a warning for developers
+        console.warn(`[API] Server error ${response.status} on ${options.method ?? 'GET'} ${endpoint}`)
+      }
+
       throw err
     }
 

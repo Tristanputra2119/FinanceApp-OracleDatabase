@@ -20,6 +20,10 @@ import app from '../server';
 import db from '../db';
 import bcrypt from 'bcryptjs';
 
+// Note: api.ts now tags 4xx responses with isClientError=true so callers
+// can distinguish expected business rejections (wrong password, 404, etc.)
+// from real server/network errors — no console.error for those paths.
+
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 jest.mock('../db', () => ({
